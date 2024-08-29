@@ -41,17 +41,38 @@ router.post('/login', async (req, res) => {
 
 
 // get user wallet account
-router.get('/wallet', async (req, res) => {
-    const { username } = req.body;
-    const user = await User.findOne({ username });
+router.get('/wallet/id/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id);
     if (!user) {
-        return res.status(404).send('User not found');
+      return res.status(404).send('User not found');
     }
     const walletAccount = {
-        walletAddress: user.walletAddress,
-        privateKey: user.privateKey,
-        mnemonicPhrase: user.mnemonicPhrase
+      walletAddress: user.walletAddress,
+      privateKey: user.privateKey,
+      mnemonicPhrase: user.mnemonicPhrase
     };
+    console.log(walletAccount);
     res.status(200).send(walletAccount);
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
+});
+// Get account balance by user ID
+router.get('/balance/id/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+    const provider = new ethers.providers.InfuraProvider('mainnet', 'YOUR_INFURA_PROJECT_ID');
+    const balance = await provider.getBalance(user.walletAddress);
+    const balanceInEther = ethers.utils.formatEther(balance);
+    res.status(200).json({ balance: balanceInEther });
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
 });
 module.exports = router;
