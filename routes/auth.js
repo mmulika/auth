@@ -67,11 +67,12 @@ router.get('/balance/id/:id', async (req, res) => {
     if (!user) {
       return res.status(404).send('User not found');
     }
-    const provider = new ethers.providers.InfuraProvider('mainnet', 'YOUR_INFURA_PROJECT_ID');
+    const provider = new ethers.providers.AlchemyProvider('mainnet', 'YOUR_ALCHEMY_API_KEY');
     const balance = await provider.getBalance(user.walletAddress);
     const balanceInEther = ethers.utils.formatEther(balance);
     res.status(200).json({ balance: balanceInEther });
   } catch (error) {
+    console.error('Error fetching balance:', error);
     res.status(500).send('Server error');
   }
 });
