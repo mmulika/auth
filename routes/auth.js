@@ -1,8 +1,12 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const { ethers } = require('ethers');
+const Web3 = require('web3');
+const dotenv = require('dotenv');
 const User = require('../models/User');
 const router = express.Router();
+
+dotenv.config();
 
 router.post('/register', async (req, res) => {
   const { username, password } = req.body;
@@ -21,59 +25,60 @@ router.post('/register', async (req, res) => {
     mnemonicPhrase: details.mnemonicPhrase
   });
   await user.save();
-  console.log(details);
   console.log(user);
   res.status(201).send(user);
 });
 
-router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    if (!user) {
-        return res.status(404).send('User not found');
-    }
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-        return res.status(401).send('Invalid password');
-    }
-    res.status(200).send('Login successful');
-});
-
-
-// get user wallet account
-router.get('/wallet/id/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).send('User not found');
-    }
-    const walletAccount = {
-      walletAddress: user.walletAddress,
-      privateKey: user.privateKey,
-      mnemonicPhrase: user.mnemonicPhrase
-    };
-    console.log(walletAccount);
-    res.status(200).send(walletAccount);
-  } catch (error) {
-    res.status(500).send('Server error');
-  }
-});
 // Get account balance by user ID
 router.get('/balance/id/:id', async (req, res) => {
+  const web3 = new Web3(`https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`);
   const { id } = req.params;
   try {
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).send('User not found');
     }
-    const provider = new ethers.providers.AlchemyProvider('mainnet', 'YOUR_ALCHEMY_API_KEY');
-    const balance = await provider.getBalance(user.walletAddress);
-    const balanceInEther = ethers.utils.formatEther(balance);
+    const balance = await web3.eth.getBalance(user.walletAddress);
+    const balanceInEther = web3.utils.fromWei(balance, 'ether');
+    console.log(balanceInEther);
     res.status(200).json({ balance: balanceInEther });
   } catch (error) {
     console.error('Error fetching balance:', error);
     res.status(500).send('Server error');
   }
 });
+
+
+
+
+
+
+// Transfer funds from one user to another
+router.post('/transfer', async (req, res) => {
+  const { senderId, receiverId, amount } = req.body;
+  try {
+    const sender = await User.findById(senderId);
+    const receiver = await User.findById(receiverId);
+    if (!sender || !receiver) {
+      return res.status(404).send('User not found');
+    }
+    const web3 = new Web3(`https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`);
+    const senderBalance = await web3.eth.getBalance(sender.walletAddress);
+    const senderBalanceInEther = web3.utils.fromWei(senderBalance, 'ether');
+    if (parseFloat(senderBalanceInEther) < amount) {
+      return res.status(400).send('Insufficient balance');
+    }
+    const transaction = await web3.eth.sendTransaction({
+      from: sender.walletAddress,
+      to: receiver.walletAddress,
+      value: web3.utils.toWei(amount.toString(), 'ether')
+    });
+    console.log(transaction);
+    res.status(200).send('Transfer successful');
+  } catch (error) {
+    console.error('Error transferring funds:', error);
+    res.status(500).send('Server error');
+  }
+});
+
 module.exports = router;
