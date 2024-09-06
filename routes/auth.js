@@ -4,6 +4,7 @@ const { ethers } = require('ethers');
 const Web3 = require('web3');
 const dotenv = require('dotenv');
 const User = require('../models/User');
+const axios = require('axios');
 const router = express.Router();
 
 dotenv.config();
@@ -77,6 +78,31 @@ router.post('/transfer', async (req, res) => {
     res.status(200).send('Transfer successful');
   } catch (error) {
     console.error('Error transferring funds:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+// Get top tokens and coins
+router.get('/top', async (req, res) => {
+  try {
+    const response = await axios.get('https://api.coingecko.com/api/v3/coins/markets', {
+      params: {
+        vs_currency: 'usd',
+        order: 'market_cap_desc',
+        per_page: 10,
+        page: 1,
+      },
+    });
+
+    const topTokensAndCoins = response.data.map((coin) => ({
+      name: coin.name,
+      symbol: coin.symbol.toUpperCase(),
+      price: coin.current_price,
+    }));
+
+    res.status(200).json(topTokensAndCoins);
+  } catch (error) {
+    console.error('Error fetching top tokens and coins:', error);
     res.status(500).send('Server error');
   }
 });

@@ -12,6 +12,7 @@
   "description": "",
   "dependencies": {
     "@alch/alchemy-web3": "^1.4.7",
+    "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
