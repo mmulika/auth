@@ -106,5 +106,36 @@ router.get('/top', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+// Uniswap exchange for tokens
+router.post('/exchange', async (req, res) => {
+  const { token1, token2, amount } = req.body;
+  try {
+    const response = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
+      params: {
+        ids: token1,
+        vs_currencies: 'usd',
+      },
+    });
 
-module.exports = router;
+    const token1Price = response.data[token1].usd;
+    const token1AmountInUSD = amount * token1Price;
+
+    const response2 = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
+      params: {
+        ids: token2,
+        vs_currencies: 'usd',
+      },
+    });
+
+    const token2Price = response2.data[token2].usd;
+    const token2AmountInUSD = token1AmountInUSD / token2Price;
+
+    // Perform the token exchange logic here
+    // ...
+
+    res.status(200).send('Token exchange successful');
+  } catch (error) {
+    console.error('Error exchanging tokens:', error);
+    res.status(500).send('Server error');
+  }
+});
