@@ -139,3 +139,19 @@ router.post('/exchange', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+// Get top 10 forex rates
+router.get('/forex/top', async (req, res) => {
+  try {
+    const response = await axios.get('https://api.exchangerate-api.com/v4/latest/USD');
+    const rates = response.data.rates;
+    const sortedRates = Object.entries(rates)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([currency, rate]) => ({ currency, rate }));
+
+    res.status(200).json(sortedRates);
+  } catch (error) {
+    console.error('Error fetching forex rates:', error);
+    res.status(500).send('Server error');
+  }
+});
