@@ -30,6 +30,38 @@ router.post('/register', async (req, res) => {
   res.status(201).send(user);
 });
 
+// Get current user
+router.get('/current', async (req, res) => {
+  const { userId } = req.query;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+// Reset password
+router.post('/reset-password', async (req, res) => {
+  const { userId, newPassword } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+    res.status(200).send('Password reset successful');
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).send('Server error');
+  }
+});
 // Get account balance by user ID
 router.get('/balance/id/:id', async (req, res) => {
   const web3 = new Web3(`https://sepolia.infura.io/v3/${process.env.INFURA_PROJECT_ID}`);
